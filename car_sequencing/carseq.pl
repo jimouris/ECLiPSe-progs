@@ -39,7 +39,7 @@ carseq(S) :-
     S #:: 1..Configurations,
     options(Opts),
     occ_constraint(S, 1, Clss),
-    constraint(S, Opts),
+    constraint(S, Opts, TotalCars, Clss),
     search(S, 0, first_fail, indomain, complete, []).
 
 %% Constrain each variable(index) to appear in solution Ci times.
@@ -50,11 +50,12 @@ occ_constraint(CarLine, Idx, [Ci|Clss]) :-
     occ_constraint(CarLine, Index, Clss).
 
 %% Never exist in each M consecutive cars, more than K that require option O.
-constraint(_, []).
-constraint(CarLine, [M/K/O|Opts]) :-
+constraint(_, [], _, _).
+constraint(CarLine, [M/K/O|Opts], TotalCars, Clss) :-
     calcPos(O, 1, Positions),
-    sequence_total(0, 100000, 0, K, M, CarLine, Positions),
-    constraint(CarLine, Opts).
+    sumofIdxs(Clss, Positions, N_cars),
+    sequence_total(N_cars, N_cars, 0, K, M, CarLine, Positions),
+    constraint(CarLine, Opts, TotalCars, Clss).
 
 %% Convert a list of 0,1 to a indexes of 1 list.
 %% e.g. calcPos([0,1,1,0,0,1], 1, R), R = [2,3,6] 
@@ -65,3 +66,10 @@ calcPos([0|Ls], I, Rs) :-
 calcPos([1|Ls], I, [I|Rs]) :-
     Ind is I+1,
     calcPos(Ls, Ind, Rs).
+
+%% for all i: S += Clss[Pi]
+sumofIdxs(_, [], 0).
+sumofIdxs(Clss, [P|Pos], S) :-
+    sumofIdxs(Clss, Pos, S2),
+    element(P, Clss, C),
+    S is C+S2.
